@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Great Louvre Thief - Editable Assets</title>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --m-gold: #d4af37;
+            --emergency-red: #ff3131;
+            --box-bg: rgba(10, 10, 10, 0.98);
+            --mystery-font: 'Special Elite', 'Courier New', serif;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            font-family: var(--mystery-font); 
+            overflow: hidden; color: white; background-color: #000; 
+        }
+
+        /* --- WIDGET SIDEBAR WITH HOVER EFFECTS --- */
+        .widget-sidebar { position: fixed; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 1000; }
+        .btn-widget { 
+            width: 55px; height: 55px; cursor: pointer; 
+            background: rgba(20, 20, 20, 0.9); border: 2px solid #333; 
+            color: var(--m-gold); display: flex; align-items: center; 
+            justify-content: center; font-size: 1.5rem; border-radius: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #000;
+        }
+        
+        .btn-widget:hover {
+            border-color: var(--m-gold);
+            background: rgba(40, 40, 40, 0.9);
+            box-shadow: 0 0 15px var(--m-gold);
+            transform: scale(1.08);
+        }
+
+        .btn-widget:active { 
+            transform: translateY(3px); 
+            box-shadow: 0 1px 0 #000, 0 0 15px var(--m-gold); 
+            background: var(--m-gold); color: black;
+        }
+
+        /* --- MISSION SCREEN --- */
+        #MISSION_SCREEN { display: flex; flex-direction: column; height: 100vh; width: 100%; justify-content: center; align-items: center; background: radial-gradient(circle, #1a1a1a 0%, #000 100%); }
+        
+        .mission-box { 
+            width: 94%; 
+            max-width: 1350px; 
+            height: 70vh; 
+            background: var(--box-bg); 
+            border: 3px solid #222; 
+            border-radius: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            box-shadow: 0 0 60px rgba(0,0,0,1); 
+            margin-bottom: 20px; 
+        }
+
+        .scroll-content { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding: 50px; 
+            display: flex; 
+            flex-direction: row; 
+            align-items: flex-start; 
+            gap: 60px; 
+        }
+
+        .scroll-content::-webkit-scrollbar { width: 8px; }
+        .scroll-content::-webkit-scrollbar-track { background: #0a0a0a; }
+        .scroll-content::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .scroll-content::-webkit-scrollbar-thumb:hover { background: var(--m-gold); }
+
+        .thief-side { flex: 1; display: flex; justify-content: center; position: sticky; top: 0; }
+        .thief-gif { width: 100%; max-width: 550px; border: 5px solid #fff; border-radius: 8px; }
+        
+        .text-side { flex: 1.2; display: flex; flex-direction: column; }
+        
+        .briefing-text { line-height: 1.6; color: #ffffff; font-size: 22px; margin: 0; text-align: justify; }
+
+        /* --- EMERGENCY GOAL BOX --- */
+        #missionFooter { padding: 30px; border: 4px dashed var(--emergency-red); background: rgba(255, 49, 49, 0.1); border-radius: 12px; display: none; flex-direction: column; align-items: center; text-align: center; margin-top: 25px; }
+        .alarm-trigger { width: 90px; height: auto; animation: alarmPulse 1s infinite; filter: drop-shadow(0 0 12px var(--emergency-red)); }
+        @keyframes alarmPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        .mission-goal-text { color: var(--emergency-red); font-weight: bold; margin-top: 20px; font-size: 1.3rem; text-transform: uppercase; }
+
+        /* --- MASTER EDITOR PANEL --- */
+        #masterEditor { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0a0a0a; border: 2px solid var(--m-gold); padding: 35px; width: 600px; max-height: 85vh; overflow-y: auto; z-index: 2000; border-radius: 20px; box-shadow: 0 0 100px rgba(0,0,0,1); }
+        .editor-section { border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+        label { display: block; font-size: 0.8rem; color: var(--m-gold); margin-top: 15px; text-transform: uppercase; font-weight: bold; }
+        input, textarea { width: 100%; background: #151515; border: 1px solid #333; color: white; padding: 12px; margin-top: 5px; border-radius: 6px; box-sizing: border-box; font-family: var(--mystery-font); }
+        .io-panel { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 20px; }
+        
+        .upload-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .upload-row input[type="file"] { padding: 5px; font-size: 0.7rem; }
+    </style>
+</head>
+<body onclick="handleGlobalClick()">
+
+    <audio id="mysteryMusic" src="mystery.mp3" loop></audio>
+    <audio id="popSound" src="pop.mp3"></audio>
+
+    <div id="MISSION_SCREEN">
+        <div class="widget-sidebar">
+            <div class="btn-widget" id="popToggle" title="Toggle Click Sound" onclick="togglePop()">▶</div>
+            <div class="btn-widget" id="musicToggle" title="Toggle Music" onclick="toggleMusic()">♫</div>
+            <div class="btn-widget" title="Open Master Editor" onclick="openEditor()">⚙</div>
+        </div>
+
+        <div class="mission-box">
+            <div class="scroll-content">
+                <div class="thief-side">
+                    <img id="thiefImage" src="thief.gif" class="thief-gif">
+                </div>
+                <div class="text-side">
+                    <p id="typewriter" class="briefing-text"></p>
+                    <div id="missionFooter">
+                        <img id="alarmImage" src="alarm.gif" class="alarm-trigger">
+                        <div id="missionGoal" class="mission-goal-text">
+                            Your Mission: If your number is chosen, help the thief answer the questions to find the missing bag and save the important masterpiece!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="masterEditor">
+        <h2 style="color:var(--m-gold); margin-top:0; border-bottom: 2px solid var(--m-gold); padding-bottom: 10px;">MASTER ASSET EDITOR</h2>
+        
+        <div class="io-panel">
+            <button class="btn-widget" style="flex:1; font-size: 0.8rem;" onclick="exportConfig()">EXPORT JSON</button>
+            <button class="btn-widget" style="flex:1; font-size: 0.8rem;" onclick="document.getElementById('importFile').click()">IMPORT JSON</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importConfig(this)">
+        </div>
+
+        <div class="editor-section">
+            <label>Briefing Story Content</label>
+            <textarea id="editBrief" rows="5"></textarea>
+            
+            <label>Mission Goal Text</label>
+            <textarea id="editGoal" rows="2"></textarea>
+
+            <label>Briefing Font Size (px)</label>
+            <input type="number" id="editFontSize" value="22">
+        </div>
+
+        <div class="editor-section">
+            <label>Sound Effects (Upload)</label>
+            <div class="upload-row"><span>Music:</span><input type="file" accept="audio/*" onchange="updateAsset(this, 'mysteryMusic')"></div>
+            <div class="upload-row"><span>Pop SFX:</span><input type="file" accept="audio/*" onchange="updateAsset(this, 'popSound')"></div>
+
+            <label>Visual Assets (Upload)</label>
+            <div class="upload-row"><span>Thief/Main:</span><input type="file" accept="image/*" onchange="updateAsset(this, 'thiefImage')"></div>
+            <div class="upload-row"><span>Alarm Icon:</span><input type="file" accept="image/*" onchange="updateAsset(this, 'alarmImage')"></div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 30px; position: sticky; bottom: 0; background: #0a0a0a; padding-top: 10px;">
+            <button class="btn-widget" style="flex:1; color:#2ecc71; border-color:#2ecc71; font-size: 1rem;" onclick="saveConfig()">SAVE ALL</button>
+            <button class="btn-widget" style="flex:1; color:#ff3131; border-color:#ff3131; font-size: 1rem;" onclick="closeEditor()">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+        const pop = document.getElementById('popSound');
+        const mMusic = document.getElementById('mysteryMusic');
+        let soundOn = true;
+        let charIndex = 0;
+        let storyTxt = "“Emergency at the Louvre! A sneaky thief has been caught after stealing one of the most famous paintings in the world. We recovered the Mona Lisa, but the other masterpieces are still missing! The thief has hidden them inside his secret black bag, and he will only tell us where they are if you can help him answer the questions.”";
+
+        function runTypewriter() {
+            const target = document.getElementById('typewriter');
+            if (charIndex < storyTxt.length) {
+                target.innerHTML += storyTxt.charAt(charIndex);
+                charIndex++;
+                setTimeout(runTypewriter, 40); 
+            } else {
+                document.getElementById('missionFooter').style.display = 'flex';
+            }
+        }
+
+        function toggleMusic() { mMusic.paused ? mMusic.play() : mMusic.pause(); document.getElementById('musicToggle').style.color = mMusic.paused ? '#555' : 'var(--m-gold)'; }
+        function togglePop() { soundOn = !soundOn; document.getElementById('popToggle').style.color = soundOn ? 'var(--m-gold)' : '#555'; }
+        function handleGlobalClick() { if (soundOn) { pop.currentTime = 0; pop.play().catch(()=>{}); } }
+        
+        function openEditor() {
+            document.getElementById('editBrief').value = storyTxt;
+            document.getElementById('editGoal').value = document.getElementById('missionGoal').innerText;
+            document.getElementById('masterEditor').style.display = 'block';
+        }
+
+        function closeEditor() { document.getElementById('masterEditor').style.display = 'none'; }
+
+        function updateAsset(input, targetId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(targetId).src = e.target.result;
+                    if(targetId === 'mysteryMusic') mMusic.load();
+                    if(targetId === 'popSound') pop.load();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function saveConfig() {
+            storyTxt = document.getElementById('editBrief').value;
+            document.getElementById('missionGoal').innerText = document.getElementById('editGoal').value;
+            document.getElementById('typewriter').style.fontSize = document.getElementById('editFontSize').value + "px";
+            
+            charIndex = 0;
+            document.getElementById('typewriter').innerHTML = "";
+            document.getElementById('missionFooter').style.display = 'none';
+            
+            closeEditor();
+            runTypewriter();
+        }
+
+        function exportConfig() {
+            const config = {
+                story: storyTxt,
+                goal: document.getElementById('missionGoal').innerText,
+                fontSize: document.getElementById('editFontSize').value
+            };
+            const blob = new Blob([JSON.stringify(config, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "louvre_mission_config.json";
+            a.click();
+        }
+
+        function importConfig(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const config = JSON.parse(e.target.result);
+                        if(config.story) storyTxt = config.story;
+                        if(config.goal) document.getElementById('missionGoal').innerText = config.goal;
+                        if(config.fontSize) document.getElementById('editFontSize').value = config.fontSize;
+                        saveConfig();
+                    } catch (err) {
+                        alert("Invalid JSON file.");
+                    }
+                };
+                reader.readAsText(input.files[0]);
+            }
+        }
+
+        window.onload = runTypewriter;
+    </script>
+</body>
+</html>
