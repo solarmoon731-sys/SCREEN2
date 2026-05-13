@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Mission Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { 
+            --teamA-color: #3498db; 
+            --teamB-color: #e74c3c; 
+            --success-green: #2ecc71; 
+            --dark-bg: #2c3e50; 
+        }
+        
+        * { font-family: 'Poppins', sans-serif; box-sizing: border-box; }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100%; 
+            overflow: hidden; background-color: var(--dark-bg); 
+        }
+
+        #menu-screen { 
+            display: flex; width: 100%; height: 100vh; 
+            background-image: url('startbackground.gif'); 
+            background-size: cover; background-position: center;
+            align-items: center; justify-content: center; 
+            position: absolute; z-index: 10000; 
+        }
+        
+        .menu-char-left {
+            position: absolute; left: 0%; bottom: 0%;
+            width: 700px; height: 900px;
+            background-image: url('boy.png');
+            background-size: contain; background-repeat: no-repeat; background-position: bottom;
+            z-index: 10001; pointer-events: none; 
+        }
+        .menu-char-right {
+            position: absolute; right: 0%; bottom: 0%;
+            width: 700px; height: 900px;
+            background-image: url('girl.png');
+            background-size: contain; background-repeat: no-repeat; background-position: bottom;
+            z-index: 10001; pointer-events: none;
+        }
+
+        .menu-card { 
+            background: rgba(255, 255, 255, 0.95); padding: 50px; border-radius: 40px; 
+            text-align: center; width: 450px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); 
+            border: 8px solid #f1c40f; position: relative; z-index: 10002;
+        }
+        
+        #game-screen { display: none; width: 100%; height: 100vh; position: relative; display: flex; z-index: 10; }
+        
+        .side { 
+            width: 50%; height: 100%; position: relative; border: 2px solid #222; 
+            overflow: hidden; background-color: #8b4513; 
+        }
+
+        .map-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('map.png'); background-size: cover; 
+            background-position: center; z-index: 5; pointer-events: none;
+        }
+        
+        .map-icon {
+            position: absolute; background-size: contain; background-repeat: no-repeat; 
+            background-position: center; z-index: 6; pointer-events: none;
+            filter: drop-shadow(5px 5px 15px rgba(0,0,0,0.3));
+        }
+        .prop-gigantic { width: 300px; height: 300px; }
+        .icon-binoculars { background-image: url('binoculars.png'); top: 5%; left: 5%; transform: rotate(-15deg); }
+        .icon-compass { background-image: url('compass.png'); width: 200px; height: 200px; top: 40%; right: 5%; transform: rotate(15deg); }
+        .icon-hat { background-image: url('hat.png'); top: 5%; left: 5%; transform: rotate(-15deg); }
+
+        .rock-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 100; }
+
+        .header { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 25px; box-sizing: border-box; z-index: 9000; pointer-events: none; }
+        .score-box { padding: 10px 20px; border-radius: 12px; color: white; background: rgba(0,0,0,0.85); min-width: 140px; text-align: center; border-bottom: 4px solid white; font-weight: 900; pointer-events: auto; }
+        .home-btn { background: white; border: 3px solid #333; padding: 8px 20px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 16px; pointer-events: auto; }
+        
+        .music-toggle { background: #f1c40f; border: 3px solid #333; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 14px; pointer-events: auto; margin: 0 5px; color: #2c3e50; }
+
+        .reward-popup, .bomb-popup, .floating-points {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 10000; display: none; pointer-events: none;
+        }
+
+        .reward-popup { width: 180px; height: 180px; background-size: contain; background-repeat: no-repeat; animation: popBounce 1.2s ease-out forwards; }
+        .bomb-popup { width: 180px; height: 180px; background-image: url('bomb.png'); background-size: contain; background-repeat: no-repeat; animation: bombShake 0.8s ease-in-out forwards; }
+        
+        .floating-points {
+            font-size: 60px; font-weight: 900; color: #f1c40f;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5), 3px 3px 0px #000;
+            animation: floatUp 1.2s ease-out forwards;
+        }
+
+        @keyframes popBounce {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            40% { transform: translate(-50%, -70%) scale(1.4); opacity: 1; }
+            100% { transform: translate(-50%, -100%) scale(1.1); opacity: 0; }
+        }
+
+        @keyframes bombShake {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            20% { transform: translate(-52%, -50%) scale(1.2); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        @keyframes floatUp {
+            0% { transform: translate(-50%, -20%) scale(0.5); opacity: 0; }
+            30% { opacity: 1; }
+            100% { transform: translate(-50%, -150%) scale(1.2); opacity: 0; }
+        }
+
+        .rock { 
+            position: absolute; width: 60px; height: 60px; 
+            background-image: url('rock.png'); background-size: contain; background-repeat: no-repeat; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            color: #000; font-weight: 900; font-size: 20px; 
+            z-index: 500; pointer-events: auto; text-shadow: 1px 1px 0px white;
+        }
+
+        .treasure-img { 
+            position: absolute; width: 110px; height: 110px; background-image: url('treasurechest.png'); background-size: contain; background-repeat: no-repeat; 
+            z-index: 50; pointer-events: none;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); animation: pulse 2s infinite;
+        }
+        #treasure-A, #treasure-B { left: 40%; top: 88%; } 
+
+        .adventurer { position: absolute; width: 45px; height: 45px; border-radius: 50%; z-index: 1600; border: 3px solid white; transition: all 0.5s ease; pointer-events: none; }
+
+        .mission-popup { 
+            position: absolute; top: 50%; transform: translateY(-50%) scale(0); 
+            width: 410px; background: white; padding: 25px; border-radius: 25px; 
+            text-align: center; z-index: 9999; display: none;
+            border: 8px solid #8b4513; box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            transition: transform 0.2s ease-out; pointer-events: auto;
+        }
+        .mission-popup.active { transform: translateY(-50%) scale(1); display: block; }
+        #mission-A { left: 20px; } #mission-B { right: 20px; }
+        
+        .mission-timer { background: #e67e22; color: white; padding: 5px 15px; border-radius: 10px; font-weight: 900; display: inline-block; margin-bottom: 10px; }
+        .keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+        .key { background: #f1f3f5; border: 1px solid #ced4da; padding: 12px 0; border-radius: 8px; cursor: pointer; font-weight: 900; color: black; font-size: 16px; text-transform: lowercase; }
+        .key.enter { grid-column: span 2; background: var(--success-green); color: white; border: none; text-transform: uppercase; }
+        .key.del { grid-column: span 2; background: #f1f3f5; color: #e74c3c; border: 1px solid #ced4da; text-transform: uppercase; }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100000; display: none; justify-content: center; align-items: center; }
+        .modal { background: white; padding: 30px; border-radius: 30px; width: 80%; text-align: center; }
+        .correct-word { color: #e74c3c; font-weight: 900; }
+
+        .edit-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 15px; max-height: 400px; overflow-y: auto; text-align: left; padding: 10px; }
+        .edit-section-title { grid-column: span 2; background: #2c3e50; color: white; padding: 8px; border-radius: 5px; margin-top: 10px; font-weight: 900; }
+        .edit-input { width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; }
+        
+        #game-complete-btn {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 25px 50px; font-size: 24px; font-weight: 900; color: white;
+            background: #f1c40f; border: 6px solid white; border-radius: 20px;
+            cursor: pointer; z-index: 20000; display: none;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); animation: pulse 2s infinite;
+        }
+
+        .review-list { text-align: left; max-height: 500px; overflow-y: auto; padding: 15px; }
+        .review-item { margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+
+        h1, h2 { font-weight: 900; }
+    </style>
+</head>
+<body onclick="playOpeningOnce()">
+
+    <audio id="bg-music" src="adventure.mp3" loop></audio>
+    <audio id="audio-opening" src="opening.mp3" loop></audio>
+    <audio id="audio-pop" src="pop.mp3"></audio>
+    <audio id="audio-points" src="points.mp3"></audio>
+    <audio id="audio-wrong" src="wrong.mp3"></audio>
+    <audio id="audio-fail" src="fail.mp3"></audio>
+    <audio id="audio-winner" src="winner.mp3"></audio>
+    <audio id="audio-bomb" src="bomb.mp3"></audio>
+    <audio id="audio-correct" src="correct.mp3"></audio>
+    <audio id="audio-treasure" src="treasure_open.mp3"></audio>
+
+    <div id="menu-screen">
+        <div class="menu-char-left"></div>
+        <div class="menu-char-right"></div>
+        <div class="menu-card">
+            <h1 style="margin-top: 0; font-size: 32px; color: #2c3e50;">Reading Mission Game</h1>
+            <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+                <button style="background:var(--success-green); color:white; width:300px; padding:20px; border-radius:15px; cursor:pointer; font-weight:900; border:none; font-size:20px;" onclick="startGame()">START RACE</button>
+                <button id="menu-toggle-music" class="music-toggle" style="width:300px; padding:15px; font-size:18px; border-radius:15px;" onclick="toggleMusic(true)">🎵 MUSIC: ON</button>
+                <button style="background:#34495e; color:white; width:300px; padding:15px; border-radius:15px; cursor:pointer; font-weight:900; border:none; font-size:18px;" onclick="openModal('content-modal')">EDIT IMAGES & TEXT</button>
+                <button style="background:#f39c12; color:white; width:300px; padding:15px; border-radius:15px; cursor:pointer; font-weight:900; border:none; font-size:18px;" onclick="openModal('how-modal')">HOW TO PLAY</button>
+                <button style="background:#7f8c8d; color:white; width:300px; padding:10px; border-radius:15px; cursor:pointer; font-weight:900; border:none; font-size:14px;" onclick="resetToDefault()">RESET ALL TO DEFAULT</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div class="header">
+            <div class="score-box">Team A Points: <span id="points-A">0</span></div>
+            <div style="display: flex; align-items: center; pointer-events: auto;">
+                <button class="home-btn" onclick="location.reload()">🏠 HOME</button>
+                <button id="toggle-music" class="music-toggle" onclick="toggleMusic(false)">🎵 MUSIC: ON</button>
+            </div>
+            <div class="score-box">Team B Points: <span id="points-B">0</span></div>
+        </div>
+
+        <button id="game-complete-btn" onclick="openReview()">GAME COMPLETE</button>
+
+        <div id="side-A" class="side">
+            <div class="map-overlay"></div>
+            <div class="map-icon prop-gigantic icon-binoculars"></div>
+            <div class="map-icon icon-compass"></div>
+            
+            <div id="rocks-A" class="rock-container"></div>
+            <div id="treasure-A" class="treasure-img"></div>
+            <div id="player-A" class="adventurer" style="background-color: var(--teamA-color);"></div>
+            <div id="reward-A" class="reward-popup"></div>
+            <div id="points-float-A" class="floating-points"></div>
+            <div id="bomb-A" class="bomb-popup"></div>
+            <div id="mission-A" class="mission-popup">
+                <div class="mission-timer">Timer: <span id="timer-val-A">20</span>s</div>
+                <div id="display-A" style="font-size:24px; font-weight:900; margin-bottom:15px; min-height:80px; color: black;"></div>
+                <div id="check-A" style="color:var(--success-green); font-size:30px; display:none; font-weight:900;">✅ CORRECT!</div>
+                <div id="keyboard-A" class="keyboard"></div>
+            </div>
+        </div>
+
+        <div id="side-B" class="side">
+            <div class="map-overlay"></div>
+            <div class="map-icon prop-gigantic icon-hat"></div>
+            
+            <div id="rocks-B" class="rock-container"></div>
+            <div id="treasure-B" class="treasure-img"></div>
+            <div id="player-B" class="adventurer" style="background-color: var(--teamB-color);"></div>
+            <div id="reward-B" class="reward-popup"></div>
+            <div id="points-float-B" class="floating-points"></div>
+            <div id="bomb-B" class="bomb-popup"></div>
+            <div id="mission-B" class="mission-popup">
+                <div class="mission-timer">Timer: <span id="timer-val-B">20</span>s</div>
+                <div id="display-B" style="font-size:24px; font-weight:900; margin-bottom:15px; min-height:80px; color: black;"></div>
+                <div id="check-B" style="color:var(--success-green); font-size:30px; display:none; font-weight:900;">✅ CORRECT!</div>
+                <div id="keyboard-B" class="keyboard"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="review-modal" class="overlay">
+        <div class="modal">
+            <h2>Mission Review</h2>
+            <div id="review-list" class="review-list"></div>
+            <button onclick="closeModal('review-modal')" style="width:100%; padding:15px; background:var(--dark-bg); color:white; border-radius:12px; border:none; font-weight:900; cursor:pointer; margin-top:10px;">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="content-modal" class="overlay">
+        <div class="modal" style="width: 90%; max-width: 600px;">
+            <h2>Content Manager</h2>
+            <div id="content-edit-fields" class="edit-grid"></div>
+            <div style="margin-top:20px; display:flex; gap:10px;">
+                <button onclick="saveContentChanges()" style="flex:1; padding:15px; background:var(--success-green); color:white; border-radius:15px; font-weight:900; border:none; cursor:pointer;">SAVE CHANGES</button>
+                <button onclick="closeModal('content-modal')" style="flex:1; padding:15px; background:#e74c3c; color:white; border-radius:15px; font-weight:900; border:none; cursor:pointer;">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="how-modal" class="overlay">
+        <div class="modal">
+            <h2>How to Play</h2>
+            <div style="text-align: left; margin: 20px 0; font-weight: 600; line-height: 1.8;">
+                <p>1. Click your team's rock to start the mission.</p>
+                <p>2. Look at the sentence and find the missing letters.</p>
+                <p>3. Type the letters using the on-screen keyboard.</p>
+                <p>4. Press ENTER to check your answer and move forward.</p>
+                <p>5. Be fast! Finish before the timer hits zero to get the most points.</p>
+            </div>
+            <button onclick="closeModal('how-modal')" style="width:100%; padding:15px; background:#333; color:white; border-radius:12px; border:none; font-weight:900; cursor:pointer;">GOT IT!</button>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_SENTENCES = [
+            "Billy w{o}rried about many things.", "Billy worried about h{a}{t}s.", "He worried about sh{o}{e}s.", "Billy worried about cl{o}uds.",
+            "Billy worried about r{a}ins.", "Billy worried about giant b{i}rds.", "Billy’s d{a}d and m{o}m tried to help.", "Billy couldn’t sl{e}{e}p well.",
+            "Gr{a}ndma gave him worry dolls.", "Billy told w{o}rries to the dolls.", "He put dolls under his p{i}{l}low.", "Billy sl{e}pt well.",
+            "Billy got w{o}rried for the dolls.", "He made d{o}lls for the dolls.", "Billy didn’t w{o}rry much at all.", "B{i}lly made worry d{o}lls for all."
+        ];
+
+        let sentences = JSON.parse(localStorage.getItem('readingMission_sentences')) || [...DEFAULT_SENTENCES];
+
+        let state = { 
+            A: {pos:0, input:"", timer:null, timeLeft:20, points:0, bombCount: 0, finished: false}, 
+            B: {pos:0, input:"", timer:null, timeLeft:20, points:0, bombCount: 0, finished: false},
+            musicEnabled: true,
+            winner: null
+        };
+
+        let openingPlayed = false;
+        function playOpeningOnce() {
+            if(!openingPlayed && state.musicEnabled && document.getElementById('menu-screen').style.display !== 'none') {
+                document.getElementById('audio-opening').play().catch(() => {});
+                openingPlayed = true;
+            }
+        }
+
+        function toggleMusic(isMenu) {
+            state.musicEnabled = !state.musicEnabled;
+            const opening = document.getElementById('audio-opening');
+            const bgMusic = document.getElementById('bg-music');
+            const menuBtn = document.getElementById('menu-toggle-music');
+            const gameBtn = document.getElementById('toggle-music');
+            const text = state.musicEnabled ? "🎵 MUSIC: ON" : "🎵 MUSIC: OFF";
+            menuBtn.innerText = text;
+            gameBtn.innerText = text;
+            if (state.musicEnabled) {
+                if (isMenu) opening.play().catch(() => {});
+                else bgMusic.play().catch(() => {});
+            } else {
+                opening.pause();
+                bgMusic.pause();
+            }
+        }
+
+        window.onload = function() {
+            const savedAssets = JSON.parse(localStorage.getItem('readingMission_assets'));
+            if(savedAssets) applyAssets(savedAssets);
+        };
+
+        function startGame() {
+            const openingAudio = document.getElementById('audio-opening');
+            openingAudio.pause();
+            openingAudio.currentTime = 0;
+            if(state.musicEnabled) document.getElementById('bg-music').play().catch(() => {});
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            ['A', 'B'].forEach(side => { drawRocks(side); drawKeyboard(side); });
+            updateMap();
+        }
+
+        function getPathCoords(i, side) {
+            const y = 10 + (i * 4.8);
+            const wave = Math.sin(i * 0.6) * 15; 
+            const x = 45 + wave; 
+            return { x, y };
+        }
+
+        function drawRocks(side) {
+            const cont = document.getElementById(`rocks-${side}`);
+            cont.innerHTML = '';
+            for(let i=0; i < 16; i++) {
+                const r = document.createElement('div');
+                r.className = 'rock'; r.innerText = i + 1;
+                const coords = getPathCoords(i, side);
+                r.style.left = `calc(${coords.x}% - 30px)`; r.style.top = coords.y + '%';
+                r.onclick = () => openMission(side, i);
+                cont.appendChild(r);
+            }
+        }
+
+        function drawKeyboard(side) {
+            const kb = document.getElementById(`keyboard-${side}`); kb.innerHTML = '';
+            "abcdefghijklmnopqrstuvwxyz".split("").forEach(l => {
+                const k = document.createElement('div'); k.className = 'key'; k.innerText = l;
+                k.onclick = () => { 
+                    document.getElementById('audio-pop').currentTime = 0;
+                    document.getElementById('audio-pop').play().catch(() => {});
+                    const slots = (sentences[state[side].pos].match(/\{.\}/g) || []).length;
+                    if(state[side].input.length < slots) { state[side].input += l; renderDisplay(side); }
+                };
+                kb.appendChild(k);
+            });
+            const del = document.createElement('div'); del.className = 'key del'; del.innerText = 'DEL';
+            del.onclick = () => { 
+                document.getElementById('audio-pop').currentTime = 0;
+                document.getElementById('audio-pop').play().catch(() => {});
+                if(state[side].input.length > 0) { state[side].input = state[side].input.slice(0, -1); renderDisplay(side); } 
+            };
+            kb.appendChild(del);
+            const ent = document.createElement('div'); ent.className = 'key enter'; ent.innerText = 'ENTER';
+            ent.onclick = () => {
+                document.getElementById('audio-pop').currentTime = 0;
+                document.getElementById('audio-pop').play().catch(() => {});
+                validate(side);
+            };
+            kb.appendChild(ent);
+        }
+
+        function openMission(side, idx) {
+            if (document.getElementById(`mission-${side}`).classList.contains('active') || idx !== state[side].pos) return;
+            state[side].input = "";
+            document.getElementById(`mission-${side}`).classList.add('active');
+            document.getElementById(`check-${side}`).style.display = 'none';
+            document.getElementById(`keyboard-${side}`).style.display = 'grid';
+            startTimer(side); renderDisplay(side);
+        }
+
+        function startTimer(side) {
+            clearInterval(state[side].timer);
+            state[side].timeLeft = 20;
+            document.getElementById(`timer-val-${side}`).innerText = state[side].timeLeft;
+            state[side].timer = setInterval(() => {
+                state[side].timeLeft--;
+                document.getElementById(`timer-val-${side}`).innerText = state[side].timeLeft;
+                if(state[side].timeLeft <= 0) { clearInterval(state[side].timer); handlePenalty(side); }
+            }, 1000);
+        }
+
+        function handlePenalty(side) {
+            document.getElementById('audio-bomb').play().catch(() => {});
+            state[side].bombCount++; 
+            const bombEl = document.getElementById(`bomb-${side}`);
+            bombEl.style.display = 'block';
+            setTimeout(() => { 
+                bombEl.style.display = 'none'; 
+                if(state[side].bombCount >= 4) { 
+                    document.getElementById('audio-fail').play().catch(() => {});
+                    triggerReward(side, 'none', 0); 
+                    renderDisplay(side, true); 
+                    setTimeout(() => finishRock(side), 1200); 
+                } 
+                else { document.getElementById(`mission-${side}`).classList.remove('active'); }
+            }, 800);
+        }
+
+        function triggerReward(side, type, amount) {
+            const rewardEl = document.getElementById(`reward-${side}`);
+            const floatEl = document.getElementById(`points-float-${side}`);
+            if(amount > 0) {
+                document.getElementById('audio-points').currentTime = 0;
+                document.getElementById('audio-points').play().catch(() => {});
+                const img = type === 'diamond' ? 'diamond.png' : 'gold.png';
+                rewardEl.style.backgroundImage = `url('${img}')`;
+                rewardEl.style.display = 'block';
+            } else { rewardEl.style.display = 'none'; }
+            floatEl.innerText = `+${amount}`;
+            floatEl.style.display = 'block';
+            setTimeout(() => { rewardEl.style.display = 'none'; floatEl.style.display = 'none'; }, 1200);
+        }
+
+        function renderDisplay(side, reveal = false) {
+            const raw = sentences[state[side].pos];
+            let i = 0;
+            if (reveal) {
+                const words = raw.split(" ");
+                const processed = words.map(word => {
+                    if (word.includes("{")) return `<span class="correct-word">${word.replace(/\{|\}/g, '')}</span>`;
+                    return word;
+                }).join(" ");
+                document.getElementById(`display-${side}`).innerHTML = processed;
+                return;
+            }
+            const out = raw.replace(/\{(\w)\}/g, (match, letter) => {
+                const char = state[side].input[i++] || "_";
+                return char + " "; 
+            }).replace(/\s+/g, ' ').trim();
+            document.getElementById(`display-${side}`).innerText = out;
+        }
+
+        function validate(side) {
+            const raw = sentences[state[side].pos];
+            const ans = (raw.match(/\{(\w)\}/g) || []).map(m => m[1]).join("");
+            if(state[side].input === ans) {
+                clearInterval(state[side].timer);
+                document.getElementById('audio-correct').play().catch(() => {});
+                let pointsToAdd = (state[side].bombCount === 0) ? 5 : (state[side].bombCount === 1) ? 3 : (state[side].bombCount === 2) ? 2 : 1;
+                let rType = (state[side].bombCount === 0) ? 'diamond' : 'gold';
+                state[side].points += pointsToAdd;
+                triggerReward(side, rType, pointsToAdd);
+                document.getElementById(`points-${side}`).innerText = state[side].points;
+                renderDisplay(side, true); 
+                document.getElementById(`check-${side}`).style.display = 'block';
+                document.getElementById(`keyboard-${side}`).style.display = 'none';
+                setTimeout(() => finishRock(side), 1200);
+            } else { 
+                document.getElementById('audio-wrong').play().catch(() => {}); 
+                state[side].input = ""; 
+                renderDisplay(side); 
+            }
+        }
+
+        function finishRock(side) {
+            document.getElementById(`mission-${side}`).classList.remove('active');
+            state[side].pos++; state[side].bombCount = 0; updateMap();
+            if(state[side].pos === 16) {
+                state[side].finished = true;
+                if (!state.winner) state.winner = side;
+                checkGameStatus();
+            }
+        }
+
+        function checkGameStatus() {
+            if (state.A.finished && state.B.finished) {
+                document.getElementById('game-complete-btn').style.display = 'block';
+                document.getElementById('audio-winner').play().catch(() => {});
+                confetti({ 
+                    particleCount: 300, 
+                    spread: 100, 
+                    origin: { x: state.winner === 'A' ? 0.25 : 0.75, y: 0.8 } 
+                });
+                const loser = state.winner === 'A' ? 'B' : 'A';
+                setTimeout(() => {
+                    document.getElementById('audio-fail').play().catch(() => {});
+                }, 1500);
+            }
+        }
+
+        function openReview() {
+            const list = document.getElementById('review-list');
+            list.innerHTML = '';
+            sentences.forEach((s, idx) => {
+                const clean = s.split(" ").map(word => {
+                    if (word.includes("{")) return `<span class="correct-word">${word.replace(/\{|\}/g, '')}</span>`;
+                    return word;
+                }).join(" ");
+                list.innerHTML += `<div class="review-item"><strong>${idx + 1}:</strong> ${clean}</div>`;
+            });
+            openModal('review-modal');
+        }
+
+        function updateMap() {
+            ['A', 'B'].forEach(s => {
+                const p = document.getElementById(`player-${s}`);
+                const idx = Math.min(state[s].pos, 15);
+                const coords = getPathCoords(idx, s);
+                p.style.left = `calc(${coords.x}% - 22px)`; p.style.top = coords.y + '%';
+            });
+        }
+
+        function openModal(id) { 
+            if(id === 'content-modal') setupContentEditor();
+            document.getElementById(id).style.display = 'flex'; 
+        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function setupContentEditor() {
+            const container = document.getElementById('content-edit-fields');
+            container.innerHTML = `<div class="edit-section-title">Images (Filenames)</div>`;
+            const savedAssets = JSON.parse(localStorage.getItem('readingMission_assets')) || {
+                map: 'map.png', start: 'startbackground.gif', treasure: 'treasurechest.png', rock: 'rock.png'
+            };
+            const imageAssets = [
+                { label: 'Map', id: 'img-map', current: savedAssets.map },
+                { label: 'Title BG', id: 'img-start', current: savedAssets.start },
+                { label: 'Treasure', id: 'img-treasure', current: savedAssets.treasure },
+                { label: 'Rock', id: 'img-rock', current: savedAssets.rock }
+            ];
+            imageAssets.forEach(asset => {
+                container.innerHTML += `<label>${asset.label}:</label><input type="text" id="${asset.id}" class="edit-input" value="${asset.current}">`;
+            });
+            container.innerHTML += `<div class="edit-section-title">Missions (use { } for blanks)</div>`;
+            sentences.forEach((s, i) => {
+                container.innerHTML += `<label>${i+1}:</label><input type="text" id="sent-${i}" class="edit-input" value="${s}">`;
+            });
+        }
+
+        function saveContentChanges() {
+            const newSentences = [];
+            for(let i=0; i < sentences.length; i++) { newSentences.push(document.getElementById(`sent-${i}`).value); }
+            sentences = newSentences;
+            localStorage.setItem('readingMission_sentences', JSON.stringify(sentences));
+            const assets = {
+                map: document.getElementById('img-map').value,
+                start: document.getElementById('img-start').value,
+                treasure: document.getElementById('img-treasure').value,
+                rock: document.getElementById('img-rock').value
+            };
+            localStorage.setItem('readingMission_assets', JSON.stringify(assets));
+            applyAssets(assets);
+            closeModal('content-modal');
+        }
+
+        function applyAssets(assets) {
+            document.querySelectorAll('.map-overlay').forEach(el => el.style.backgroundImage = `url('${assets.map}')`);
+            document.getElementById('menu-screen').style.backgroundImage = `url('${assets.start}')`;
+            document.querySelectorAll('.treasure-img').forEach(el => el.style.backgroundImage = `url('${assets.treasure}')`);
+            document.querySelectorAll('.rock').forEach(el => el.style.backgroundImage = `url('${assets.rock}')`);
+        }
+
+        function resetToDefault() {
+            if(confirm("This will delete all your custom sentences. Are you sure?")) {
+                localStorage.removeItem('readingMission_sentences');
+                localStorage.removeItem('readingMission_assets');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
